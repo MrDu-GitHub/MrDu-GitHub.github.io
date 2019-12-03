@@ -1,0 +1,362 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style.css?v=2.0.4"><link rel="stylesheet" type="text/css" href="/css/highlight.css?v=2.0.4"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><title>iOS Charts 折线图框架的基本使用 | 文修君の博客</title><meta name="generator" content="Hexo 4.0.0"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">iOS Charts 折线图框架的基本使用</h1><a id="logo" href="/.">文修君の博客</a><p class="description">莫待黄昏长嘘唏</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">iOS Charts 折线图框架的基本使用</h1><div class="post-meta"><a href="/2019/08/26/15667910110641/#comments" class="comment-count"></a><p><span class="date">Aug 26, 2019</span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h3 id="1-导入框架"><a href="#1-导入框架" class="headerlink" title="1. 导入框架"></a>1. 导入框架</h3><ul>
+<li><p>通过 cocoapods 管理应用程序时，在 Podfile 文件中，use_frameworks! 的使用区别如下：</p>
+<ul>
+<li><p>使用 use_frameworks! 时 dynamic frameworks 方式 -&gt; .framework<br>cocoapods 会生成对应的 frameworks 文件<br>在 Link Binary With Libraries：会生成 Pods_工程名.framework，包含了其它用 cocoapods 导入的第三方框架的 .framework 文件</p>
+</li>
+<li><p>不使用 use_frameworks! 时 static libraries 方式 -&gt; 生成.a文件<br>cocoapods 会生成相应的 .a文件（静态链接库）<br>Link Binary With Libraries: libPods-工程名.a 包含了其他用 cocoapods 导入有第三库的 .a 文件</p>
+</li>
+</ul>
+</li>
+<li><p>通过 cocoapods 导入 swift 库时，都必须使用 use_frameworks!</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span></pre></td><td class="code"><pre><span class="line">use_frameworks!</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">2</span></pre></td><td class="code"><pre><span class="line">pod &#39;Charts&#39;</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">3</span></pre></td><td class="code"><pre><span class="line">pod &#39;ChartsRealm&#39;</span></pre></td></tr></table></figure></li>
+<li><p>终端执行 pod install 完成框架集成</p>
+</li>
+</ul>
+<h3 id="2-Xcode配置"><a href="#2-Xcode配置" class="headerlink" title="2. Xcode配置"></a>2. Xcode配置</h3><ul>
+<li><p>导入框架之后 command + B 编译报如下错误：提示Swift 版本不兼容<br><img src="/2019/08/26/15667910110641/15668862513439.jpg" alt></p>
+</li>
+<li><p>解决方式: Pods -&gt; TARGETS 选择对应的库文件 -&gt; Build Settings -&gt; Swift Compiler - Language 修改对应 swift 版本， Charts、ChartsRealm、RealmSwift 都需要设置<br><img src="/2019/08/26/15667910110641/15668872151546.jpg" alt></p>
+</li>
+<li><p>当外部 Framework 在编译时需开启 Defines Module，如果没有开启且没有 Framework 源码的情况无需设置。<br><img src="/2019/08/26/15667910110641/15668866883482.jpg" alt></p>
+</li>
+</ul>
+<h3 id="3-创建视图及配置"><a href="#3-创建视图及配置" class="headerlink" title="3. 创建视图及配置"></a>3. 创建视图及配置</h3><ul>
+<li><p>使用框架时，demo先行，选择需要的折线图类型进而研究并使用</p>
+<p>  这里介绍主要使用的几个库类，仅供参考！</p>
+</li>
+<li><p>ChartViewBase</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>.xAxis</td>
+<td>X坐标轴</td>
+</tr>
+<tr>
+<td>_defaultValueFormatter</td>
+<td>实现IValueFormatter协议的类，用来将数值进行格式化处理</td>
+</tr>
+<tr>
+<td>_data</td>
+<td>持有未经过任何处理的原始数据的对象</td>
+</tr>
+<tr>
+<td>_highlightPerTapEnabled</td>
+<td>点击时显示高亮的标志位，默认为true</td>
+</tr>
+<tr>
+<td>dragDecelerationEnabled</td>
+<td>拖拽时允许减速的标志位，默认为true</td>
+</tr>
+<tr>
+<td>_dragDecelerationFrictionCoef</td>
+<td>拖拽减速的摩擦系数，值为[0,1)区间内，值越大，减速越慢，当值为0时，减速会立即停止，1是非法的值，当设定该值大于等于1时，会自动把1转换成0.999，默认值为0.9</td>
+</tr>
+<tr>
+<td>chartDescription</td>
+<td>存储一些图表描述的对象</td>
+</tr>
+<tr>
+<td>_legend</td>
+<td>图例</td>
+</tr>
+<tr>
+<td>noDataText</td>
+<td>当没有数据时，显示在图标中间的缺省文字，默认为“No chart data available.”</td>
+</tr>
+<tr>
+<td>noDataFont</td>
+<td>没有数据时，提示文字的字体</td>
+</tr>
+<tr>
+<td>noDataTextColor</td>
+<td>没有数据时，提示文字的颜色</td>
+</tr>
+<tr>
+<td>_legendRenderer</td>
+<td>图例的渲染器</td>
+</tr>
+<tr>
+<td>renderer</td>
+<td>数据的渲染器</td>
+</tr>
+<tr>
+<td>_viewPortHandler</td>
+<td>管理图表的边界，并且绘制约束的对象</td>
+</tr>
+<tr>
+<td>_animator</td>
+<td>响应动画的对象</td>
+</tr>
+<tr>
+<td>_offsetsCalculated</td>
+<td>记录是否已经计算好偏移值的标志位</td>
+</tr>
+<tr>
+<td>_indicesToHighlight</td>
+<td>存高亮对象的数组（目前代码中其实好像就只会有一个元素）</td>
+</tr>
+<tr>
+<td>drawMarkers</td>
+<td>是否绘制标记（点击图标时，弹出来的浮标），默认值为true，（getter=isDrawMarkersEnabled）</td>
+</tr>
+<tr>
+<td>marker</td>
+<td>表示如何显示样式对象</td>
+</tr>
+<tr>
+<td>_interceptTouchEvents</td>
+<td>是否拦截点击事件，默认为false</td>
+</tr>
+<tr>
+<td>extraTopOffset，extraRightOffset，extraBottomOffset，extraLeftOffset</td>
+<td>上右下左的边距，默认为0</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>重要方法</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>open func notifyDataSetChanged()</td>
+<td>通知数据改变了，用以设置数据时，重新绘图，但在ChartViewBase中会抛出异常</td>
+</tr>
+<tr>
+<td>internal func calculateOffsets()</td>
+<td>计算上左下右偏移量，同样在基类中不做具体实现，并抛出异常</td>
+</tr>
+<tr>
+<td>internal func calcMinMax()</td>
+<td>计算y轴最大最小值，还有x轴跟y轴的范围</td>
+</tr>
+<tr>
+<td>internal func setupDefaultFormatter(min: Double, max: Double)</td>
+<td>设置默认的格式化器</td>
+</tr>
+<tr>
+<td>internal func drawDescription(context: CGContext)</td>
+<td>绘制描述的方法</td>
+</tr>
+<tr>
+<td>open func highlightValue(x: Double, y: Double, dataSetIndex: Int, callDelegate: Bool)</td>
+<td>处理高亮的值的方法</td>
+</tr>
+<tr>
+<td>open func getHighlightByTouchPoint(_ pt: CGPoint) -&gt; Highlight?</td>
+<td>从触摸点活动高亮对象</td>
+</tr>
+<tr>
+<td>internal func drawMarkers(context: CGContext)</td>
+<td>绘制标记</td>
+</tr>
+<tr>
+<td>internal func drawMarkers(context: CGContext)</td>
+<td>获取标记的位置</td>
+</tr>
+<tr>
+<td>open func getChartImage(transparent: Bool) -&gt; NSUIImage?</td>
+<td>当前图表转换成UIImage的对象</td>
+</tr>
+<tr>
+<td>open func save(to path: String, format: ImageFormat, compressionQuality: Double) -&gt; Bool</td>
+<td>把当前图标保存到本地</td>
+</tr>
+</tbody></table>
+</li>
+<li><p>AxisBase</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>_axisValueFormatter</td>
+<td>轴上坐标值的格式化类，遵守IAxisValueFormatter协议的一个类</td>
+</tr>
+<tr>
+<td>labelFont</td>
+<td>坐标轴数值字体</td>
+</tr>
+<tr>
+<td>labelTextColor</td>
+<td>坐标轴数值字体颜色</td>
+</tr>
+<tr>
+<td>axisLineColor</td>
+<td>轴线颜色，默认为gray</td>
+</tr>
+<tr>
+<td>axisLineWidth</td>
+<td>轴线线宽，默认为0.5</td>
+</tr>
+<tr>
+<td>axisLineDashPhase</td>
+<td>轴线虚线的相位</td>
+</tr>
+<tr>
+<td>axisLineDashLengths</td>
+<td>轴线为虚线的长度数组，如@[@4.f, @2.f]，则为长为4的实线和长为2的虚线空白间隔</td>
+</tr>
+<tr>
+<td>gridColor</td>
+<td>网格线颜色</td>
+</tr>
+<tr>
+<td>gridLineWidth</td>
+<td>网格线线宽</td>
+</tr>
+<tr>
+<td>gridLineCap</td>
+<td>网格线边缘形状</td>
+</tr>
+<tr>
+<td>drawGridLinesEnabled</td>
+<td>是否绘制网格线</td>
+</tr>
+<tr>
+<td>drawAxisLineEnabled</td>
+<td>是否绘制轴线</td>
+</tr>
+<tr>
+<td>drawLabelsEnabled</td>
+<td>是否显示坐标轴数值</td>
+</tr>
+<tr>
+<td>_centerAxisLabelsEnabled</td>
+<td>坐标值标签是否居中</td>
+</tr>
+<tr>
+<td>_limitLines</td>
+<td>限制线的数组</td>
+</tr>
+<tr>
+<td>drawLimitLinesBehindDataEnabled</td>
+<td>限制线绘制在数据后面还是前面，默认为false，即绘制在数据前面</td>
+</tr>
+<tr>
+<td>gridAntialiasEnabled</td>
+<td>网格是否抗锯齿</td>
+</tr>
+<tr>
+<td>_labelCount</td>
+<td>坐标轴显示数值的数目，默认为6</td>
+</tr>
+<tr>
+<td>decimals</td>
+<td>要使用的小数位数，默认为0</td>
+</tr>
+<tr>
+<td>granularityEnabled</td>
+<td>如果为true，则轴标签由 <code>granularity</code> 属性控制，如果为false，则可能会重复轴值，如果两个相邻的轴值取整为相同的值，则可能会发生这种情况，如果使用粒度，可以通过减少可见的轴值来避免。</td>
+</tr>
+<tr>
+<td>forceLabelsEnabled</td>
+<td>如果为true的时候，y坐标值数将会强制限制</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>重要方法</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>open func getFormattedLabel(_ index: Int) -&gt; String</td>
+<td>根据索引获取已格式化的字符串</td>
+</tr>
+<tr>
+<td>open func calculate(min dataMin: Double, max dataMax: Double)</td>
+<td>计算最大最小值并且y轴显示的范围。dataMin根据表格数据得到的y最小值，dataMax根据表格获得y的最大值</td>
+</tr>
+</tbody></table>
+</li>
+<li><p>LineChartDataSet 子类 - 折线的设置</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>axisDependency</td>
+<td>设置数据依赖的轴 - （左/右）</td>
+</tr>
+<tr>
+<td>lineWidth</td>
+<td>线宽，默认为1</td>
+</tr>
+<tr>
+<td>drawValuesEnabled</td>
+<td>是否绘制线上文字</td>
+</tr>
+<tr>
+<td>highlightEnabled</td>
+<td>选中拐点,是否开启高亮效果(显示十字线)</td>
+</tr>
+<tr>
+<td>highlightColor</td>
+<td>点击选中拐点的十字线的颜色</td>
+</tr>
+<tr>
+<td>highlightLineDashLengths</td>
+<td>十字线的虚实长度数组</td>
+</tr>
+<tr>
+<td>highlightLineWidth</td>
+<td>十字线宽度</td>
+</tr>
+<tr>
+<td>drawCirclesEnabled</td>
+<td>是否绘制拐点</td>
+</tr>
+<tr>
+<td>circleRadius</td>
+<td>拐点半径</td>
+</tr>
+<tr>
+<td>circleColors</td>
+<td>拐点颜色</td>
+</tr>
+<tr>
+<td>drawCircleHoleEnabled</td>
+<td>是否绘制拐点的空心</td>
+</tr>
+<tr>
+<td>circleHoleRadius</td>
+<td>拐点空心半径</td>
+</tr>
+<tr>
+<td>circleHoleColor</td>
+<td>拐点空心的颜色</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<h3 id="4-部分注意点"><a href="#4-部分注意点" class="headerlink" title="4. 部分注意点"></a>4. 部分注意点</h3><ul>
+<li><p>自定义 X 轴，Y 轴，折线上数据</p>
+<ul>
+<li><p>x轴，y轴的数据自定义需要遵守协议：IChartAxisValueFormatter</p>
+</li>
+<li><p>折线上的数据自定义需要遵守协议：IChartValueFormatter</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span></pre></td><td class="code"><pre><span class="line">- (NSString *)stringForValue:(double)value axis:(ChartAxisBase *)axis &#123;</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">2</span></pre></td><td class="code"><pre><span class="line">    return [NSString stringWithFormat:@&quot;%.f月&quot;,value];</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">3</span></pre></td><td class="code"><pre><span class="line">&#125;</span></pre></td></tr></table></figure>
+
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="5-部分源码修改"><a href="#5-部分源码修改" class="headerlink" title="5. 部分源码修改"></a>5. 部分源码修改</h3><ul>
+<li><p>修改十字线虚线样式 ( <strong>LineScatterCandleRadarRenderer.swift</strong> )<br><img src="/2019/08/26/15667910110641/15750211716830.jpg" alt></p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span></pre></td><td class="code"><pre><span class="line">       @objc open func drawHighlightLines(context: CGContext, point: CGPoint, set: ILineScatterCandleRadarChartDataSet)</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">2</span></pre></td><td class="code"><pre><span class="line">    &#123;</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">3</span></pre></td><td class="code"><pre><span class="line">        </span></pre></td></tr><tr><td class="gutter"><pre><span class="line">4</span></pre></td><td class="code"><pre><span class="line">        &#x2F;&#x2F; draw vertical highlight lines</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">5</span></pre></td><td class="code"><pre><span class="line">        if set.isVerticalHighlightIndicatorEnabled</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">6</span></pre></td><td class="code"><pre><span class="line">        &#123;</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">7</span></pre></td><td class="code"><pre><span class="line">            context.beginPath()</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">8</span></pre></td><td class="code"><pre><span class="line">            &#x2F;&#x2F; 文修2019年08月15日17:55:58</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">9</span></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F;            context.move(to: CGPoint(x: point.x, y: viewPortHandler.contentTop))</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">10</span></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F;            context.addLine(to: CGPoint(x: point.x, y: viewPortHandler.contentBottom))</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">11</span></pre></td><td class="code"><pre><span class="line">            context.move(to: CGPoint(x: point.x, y: viewPortHandler.contentBottom))</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">12</span></pre></td><td class="code"><pre><span class="line">            context.addLine(to: CGPoint(x: point.x, y: point.y))</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">13</span></pre></td><td class="code"><pre><span class="line">            context.strokePath()</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">14</span></pre></td><td class="code"><pre><span class="line">        &#125;</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">15</span></pre></td><td class="code"><pre><span class="line">        </span></pre></td></tr><tr><td class="gutter"><pre><span class="line">16</span></pre></td><td class="code"><pre><span class="line">        &#x2F;&#x2F; draw horizontal highlight lines</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">17</span></pre></td><td class="code"><pre><span class="line">        if set.isHorizontalHighlightIndicatorEnabled</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">18</span></pre></td><td class="code"><pre><span class="line">        &#123;</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">19</span></pre></td><td class="code"><pre><span class="line">            context.beginPath()</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">20</span></pre></td><td class="code"><pre><span class="line">            &#x2F;&#x2F; 文修2019年08月15日17:55:58</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">21</span></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F;            context.move(to: CGPoint(x: viewPortHandler.contentLeft, y: point.y))</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">22</span></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F;            context.addLine(to: CGPoint(x: viewPortHandler.contentRight, y: point.y))</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">23</span></pre></td><td class="code"><pre><span class="line">            context.move(to: CGPoint(x: viewPortHandler.contentLeft, y: point.y))</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">24</span></pre></td><td class="code"><pre><span class="line">            context.addLine(to: CGPoint(x: point.x, y: point.y))</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">25</span></pre></td><td class="code"><pre><span class="line">            context.strokePath()</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">26</span></pre></td><td class="code"><pre><span class="line">        &#125;</span></pre></td></tr><tr><td class="gutter"><pre><span class="line">27</span></pre></td><td class="code"><pre><span class="line">    &#125;</span></pre></td></tr></table></figure></li>
+</ul>
+</div><div class="post-copyright"><blockquote><p>原文作者: 文修君</p><p>原文链接: <a href="/https:/mrdu-github.github.io/2019/08/26/15667910110641/">https://mrdu-github.github.io/2019/08/26/15667910110641/</a></p><p>版权声明: 转载请注明出处(必须保留作者署名及链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/11/12/15735276482668/" class="pre">Xcode 三方库管理工具 CocoaPods 的安装流程</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-导入框架"><span class="toc-text">1. 导入框架</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Xcode配置"><span class="toc-text">2. Xcode配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-创建视图及配置"><span class="toc-text">3. 创建视图及配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-部分注意点"><span class="toc-text">4. 部分注意点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-部分源码修改"><span class="toc-text">5. 部分源码修改</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/12/15735276482668/">Xcode 三方库管理工具 CocoaPods 的安装流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/26/15667910110641/">iOS Charts 折线图框架的基本使用</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/">2019</a><span class="archive-list-count">2</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">文修君.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/" target="_blank" rel="noopener"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.4"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.4" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>
